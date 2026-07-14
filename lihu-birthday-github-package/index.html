@@ -1,0 +1,1511 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>生日蛋糕粒子手势</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #05060a;
+      --panel: rgba(8, 11, 18, .62);
+      --line: rgba(255, 255, 255, .12);
+      --text: #f7f9ff;
+      --muted: #a9b2c4;
+      --accent: #ff8cc8;
+      --accent-2: #7de7ff;
+      --ok: #68f0b3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      user-select: none;
+      touch-action: none;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background:
+        radial-gradient(circle at 48% 36%, rgba(255, 140, 200, .13), transparent 32%),
+        radial-gradient(circle at 72% 70%, rgba(125, 231, 255, .10), transparent 34%),
+        linear-gradient(145deg, #05060a 0%, #0b0f17 54%, #070711 100%);
+      cursor: crosshair;
+    }
+
+    .topbar {
+      position: fixed;
+      top: clamp(12px, 2vw, 22px);
+      left: clamp(12px, 2vw, 22px);
+      right: clamp(12px, 2vw, 22px);
+      z-index: 3;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .brand,
+    .controls,
+    .camera-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 54px rgba(0, 0, 0, .34);
+      pointer-events: auto;
+    }
+
+    .brand {
+      width: min(520px, calc(100vw - 24px));
+      padding: 13px 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(21px, 3vw, 34px);
+      line-height: 1;
+      letter-spacing: 0;
+      font-weight: 850;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 18px var(--accent);
+      flex: 0 0 auto;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(44px, auto));
+      gap: 8px;
+      padding: 8px;
+      align-items: center;
+    }
+
+    button {
+      height: 38px;
+      min-width: 40px;
+      border: 1px solid rgba(255, 255, 255, .17);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .08);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 760;
+      letter-spacing: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, .15);
+    }
+
+    button.active {
+      border-color: rgba(125, 231, 255, .58);
+      background: rgba(125, 231, 255, .14);
+      box-shadow: inset 0 -2px 0 rgba(125, 231, 255, .72);
+    }
+
+    .icon-btn {
+      width: 42px;
+      padding: 0;
+      font-size: 18px;
+    }
+
+    .color-wrap {
+      height: 38px;
+      min-width: 96px;
+      border: 1px solid rgba(255, 255, 255, .17);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .08);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    input[type="color"] {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .range-wrap {
+      min-width: 112px;
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-2);
+    }
+
+    .telemetry {
+      position: fixed;
+      left: clamp(12px, 2vw, 22px);
+      bottom: clamp(12px, 2vw, 22px);
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(86px, 1fr));
+      gap: 8px;
+      width: min(520px, calc(100vw - 24px));
+      pointer-events: none;
+    }
+
+    .metric {
+      min-height: 44px;
+      border: 1px solid rgba(255, 255, 255, .11);
+      border-radius: 8px;
+      background: rgba(6, 9, 15, .58);
+      backdrop-filter: blur(16px);
+      padding: 8px 10px;
+      overflow: hidden;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 830;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .camera-card {
+      position: fixed;
+      right: clamp(12px, 2vw, 22px);
+      bottom: clamp(12px, 2vw, 22px);
+      z-index: 3;
+      width: min(210px, 36vw);
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .2s ease, transform .2s ease;
+      pointer-events: none;
+    }
+
+    .camera-card.live {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    video {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      transform: scaleX(-1);
+      filter: saturate(1.08) contrast(1.08);
+      background: #070a10;
+    }
+
+    .camera-status {
+      min-height: 30px;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.15;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .camera-status::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #697386;
+      box-shadow: 0 0 12px rgba(105, 115, 134, .8);
+      flex: 0 0 auto;
+    }
+
+    .camera-status.tracking::before {
+      background: var(--ok);
+      box-shadow: 0 0 16px rgba(104, 240, 179, .9);
+    }
+
+    .camera-status.error::before {
+      background: #ff6b6b;
+      box-shadow: 0 0 16px rgba(255, 107, 107, .9);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: clamp(72px, 10vw, 108px);
+      z-index: 4;
+      transform: translate(-50%, 10px);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(8, 11, 18, .86);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.25;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 840px) {
+      .topbar {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .brand {
+        width: 100%;
+      }
+
+      .controls {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+      }
+
+      .range-wrap {
+        min-width: 0;
+      }
+
+      .telemetry {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        bottom: calc(clamp(12px, 2vw, 22px) + 86px);
+      }
+
+      .camera-card {
+        width: min(150px, 38vw);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      button,
+      .color-wrap {
+        height: 36px;
+        font-size: 12px;
+      }
+
+      .icon-btn {
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene" aria-label="生日蛋糕发光粒子手势画布"></canvas>
+
+  <header class="topbar">
+    <section class="brand" aria-label="状态">
+      <h1>李虎叔叔祝您生日快乐</h1>
+      <div class="status" id="statusText">粒子已散开，合拢手掌聚成蛋糕</div>
+    </section>
+
+    <section class="controls" aria-label="控制">
+      <button id="cameraBtn" type="button" aria-pressed="false">摄像头</button>
+      <button id="musicBtn" type="button" aria-pressed="false">许愿歌</button>
+      <button id="blessingBtn" type="button" aria-pressed="false">峰哥祝福</button>
+      <button id="resetBtn" type="button">归位</button>
+      <button id="fullscreenBtn" class="icon-btn" type="button" aria-label="全屏">⛶</button>
+      <label class="color-wrap" for="colorInput">颜色 <input id="colorInput" type="color" value="#ff8cc8"></label>
+      <label class="range-wrap" for="densityRange">细腻度 <input id="densityRange" type="range" min="9000" max="26000" value="15000" step="500"></label>
+    </section>
+  </header>
+
+  <section class="telemetry" aria-label="实时手势">
+    <div class="metric"><span>手掌张合</span><strong id="openMetric">待机</strong></div>
+    <div class="metric"><span>粒子缩放</span><strong id="scaleMetric">100%</strong></div>
+    <div class="metric"><span>手指动作</span><strong id="fingerMetric">待机</strong></div>
+    <div class="metric"><span>粒子数量</span><strong id="countMetric">0</strong></div>
+  </section>
+
+  <aside class="camera-card" id="cameraCard" aria-live="polite">
+    <video id="cameraVideo" autoplay playsinline muted></video>
+    <div class="camera-status" id="cameraStatus">摄像头待机</div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <audio id="birthdayAudio" src="assets/birthday-resistance.mp3" preload="metadata" loop></audio>
+  <audio id="blessingAudio" src="assets/fengge-blessing.mp3" preload="metadata"></audio>
+
+  <script>
+    const canvas = document.getElementById("scene");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const cameraBtn = document.getElementById("cameraBtn");
+    const musicBtn = document.getElementById("musicBtn");
+    const blessingBtn = document.getElementById("blessingBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const colorInput = document.getElementById("colorInput");
+    const densityRange = document.getElementById("densityRange");
+    const statusText = document.getElementById("statusText");
+    const openMetric = document.getElementById("openMetric");
+    const scaleMetric = document.getElementById("scaleMetric");
+    const fingerMetric = document.getElementById("fingerMetric");
+    const countMetric = document.getElementById("countMetric");
+    const cameraCard = document.getElementById("cameraCard");
+    const cameraVideo = document.getElementById("cameraVideo");
+    const cameraStatus = document.getElementById("cameraStatus");
+    const toast = document.getElementById("toast");
+    const birthdayAudio = document.getElementById("birthdayAudio");
+    const blessingAudio = document.getElementById("blessingAudio");
+
+    const state = {
+      w: 0,
+      h: 0,
+      dpr: 1,
+      targets: [],
+      particles: [],
+      density: Number(densityRange.value),
+      hue: hexToRgb(colorInput.value),
+      baseCanvas: null,
+      lastTime: performance.now(),
+      pointer: { x: 0, y: 0, active: false, down: false },
+      gesture: {
+        active: false,
+        openness: 1,
+        scale: 1,
+        spread: 1.35,
+        angle: 0,
+        rotateVelocity: 0,
+        z: 1,
+        centerX: .5,
+        centerY: .5,
+        finger: "待机",
+        confidence: 0
+      },
+      camera: {
+        enabled: false,
+        stream: null,
+        scanCanvas: document.createElement("canvas"),
+        previous: null,
+        handLandmarker: null,
+        handLoading: false,
+        handReady: false,
+        trackerMode: "pixel",
+        lastVideoTime: -1,
+        width: 128,
+        height: 96,
+        lastArea: 0,
+        baselineSize: 0,
+        previousAngle: null,
+        previousOpen: null,
+        previousBoxDiag: null
+      }
+    };
+
+    state.camera.scanCanvas.width = state.camera.width;
+    state.camera.scanCanvas.height = state.camera.height;
+
+    class Particle {
+      constructor(target, burst) {
+        this.bx = target.bx;
+        this.by = target.by;
+        this.tx = target.x;
+        this.ty = target.y;
+        this.x = burst || !state.gesture.active ? Math.random() * state.w : this.tx + rand(-28, 28);
+        this.y = burst || !state.gesture.active ? Math.random() * state.h : this.ty + rand(-28, 28);
+        this.vx = rand(-2, 2);
+        this.vy = rand(-2, 2);
+        this.r = target.r;
+        this.g = target.g;
+        this.b = target.b;
+        this.a = target.a;
+        this.edge = target.edge;
+        this.text = target.text;
+        this.flame = target.flame;
+        this.ring = target.ring;
+        this.size = target.size;
+        this.seed = Math.random() * Math.PI * 2;
+        this.orbit = rand(-1, 1);
+      }
+
+      step(dt, time) {
+        const spring = .022 + this.a * .024;
+        this.vx += (this.tx - this.x) * spring * dt;
+        this.vy += (this.ty - this.y) * spring * dt;
+
+        const shimmer = Math.sin(time * .003 + this.seed) * .025;
+        this.vx += Math.cos(this.seed + time * .0012) * shimmer * dt;
+        this.vy += Math.sin(this.seed - time * .0011) * shimmer * dt;
+
+        if (state.pointer.active) {
+          const dx = this.x - state.pointer.x;
+          const dy = this.y - state.pointer.y;
+          const d = Math.hypot(dx, dy) || .001;
+          const radius = state.pointer.down ? 240 : 160;
+          if (d < radius) {
+            const f = (1 - d / radius) ** 2 * (state.pointer.down ? 4.2 : 1.8);
+            this.vx += (dx / d) * f * dt;
+            this.vy += (dy / d) * f * dt;
+          }
+        }
+
+        if (state.gesture.active) {
+          const cx = state.gesture.centerX * state.w;
+          const cy = state.gesture.centerY * state.h;
+          const dx = this.x - cx;
+          const dy = this.y - cy;
+          const d = Math.hypot(dx, dy) || .001;
+          const handPull = (state.gesture.openness - .45) * 1.6;
+          this.vx += (dx / d) * handPull * dt;
+          this.vy += (dy / d) * handPull * dt;
+          this.vx += -dy / d * state.gesture.rotateVelocity * this.orbit * dt * 2.5;
+          this.vy += dx / d * state.gesture.rotateVelocity * this.orbit * dt * 2.5;
+        }
+
+        if (this.flame && state.gesture.openness < .34) {
+          const flicker = Math.sin(time * .018 + this.seed * 4) + Math.sin(time * .031 + this.seed);
+          this.vx += flicker * .22 * dt;
+          this.vy -= (.16 + Math.abs(flicker) * .18) * dt;
+        }
+
+        this.vx *= .9;
+        this.vy *= .9;
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+      }
+    }
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function hexToRgb(hex) {
+      const raw = hex.replace("#", "");
+      return {
+        r: parseInt(raw.slice(0, 2), 16),
+        g: parseInt(raw.slice(2, 4), 16),
+        b: parseInt(raw.slice(4, 6), 16)
+      };
+    }
+
+    function tintColor(r, g, b, amount) {
+      const tint = state.hue;
+      return {
+        r: Math.round(lerp(r, tint.r, amount)),
+        g: Math.round(lerp(g, tint.g, amount)),
+        b: Math.round(lerp(b, tint.b, amount))
+      };
+    }
+
+    function resize() {
+      state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      state.w = window.innerWidth;
+      state.h = window.innerHeight;
+      canvas.width = Math.floor(state.w * state.dpr);
+      canvas.height = Math.floor(state.h * state.dpr);
+      canvas.style.width = state.w + "px";
+      canvas.style.height = state.h + "px";
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      if (!state.baseCanvas) state.baseCanvas = makeCakeCanvas();
+      rebuildParticles(false);
+    }
+
+    function makeCakeCanvas() {
+      const c = document.createElement("canvas");
+      c.width = 1000;
+      c.height = 1000;
+      const g = c.getContext("2d");
+      g.clearRect(0, 0, c.width, c.height);
+
+      g.save();
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.lineJoin = "round";
+      g.shadowColor = "rgba(255, 140, 200, .36)";
+      g.shadowBlur = 5;
+      g.font = "900 76px system-ui, -apple-system, sans-serif";
+      g.lineWidth = 18;
+      g.strokeStyle = "#3f1558";
+      g.strokeText("HAPPY", 500, 46);
+      g.lineWidth = 7;
+      g.strokeStyle = "#fff6d0";
+      g.strokeText("HAPPY", 500, 46);
+      g.fillStyle = "#ffbf3d";
+      g.fillText("HAPPY", 500, 46);
+      g.font = "900 88px system-ui, -apple-system, sans-serif";
+      g.lineWidth = 20;
+      g.strokeStyle = "#3f1558";
+      g.strokeText("BIRTHDAY", 500, 118);
+      g.lineWidth = 7;
+      g.strokeStyle = "#fff8dc";
+      g.strokeText("BIRTHDAY", 500, 118);
+      const textGrad = g.createLinearGradient(210, 78, 790, 148);
+      textGrad.addColorStop(0, "#ff8cc8");
+      textGrad.addColorStop(.48, "#ffe371");
+      textGrad.addColorStop(1, "#7de7ff");
+      g.fillStyle = textGrad;
+      g.fillText("BIRTHDAY", 500, 118);
+      g.restore();
+
+      drawSaturnRing(g, false);
+
+      g.save();
+      g.translate(500, 650);
+      drawEllipse(g, 0, 245, 330, 70, "#ffe0f1", "#ff8cc8");
+      roundedRect(g, -315, 10, 630, 245, 36, "#ffb4d8");
+      drawEllipse(g, 0, 12, 315, 64, "#fff5fb", "#ffb4d8");
+      roundedRect(g, -255, -130, 510, 170, 34, "#ffe6a8");
+      drawEllipse(g, 0, -130, 255, 54, "#fff9dd", "#ffd166");
+      roundedRect(g, -190, -255, 380, 145, 32, "#b4efff");
+      drawEllipse(g, 0, -255, 190, 44, "#f7fdff", "#7de7ff");
+
+      g.lineWidth = 8;
+      g.strokeStyle = "rgba(120, 42, 110, .55)";
+      g.strokeRect(-315, 10, 630, 245);
+      g.strokeStyle = "rgba(142, 103, 26, .5)";
+      g.strokeRect(-255, -130, 510, 170);
+      g.strokeStyle = "rgba(26, 111, 136, .48)";
+      g.strokeRect(-190, -255, 380, 145);
+
+      g.fillStyle = "#ff73ad";
+      for (let i = -5; i <= 5; i++) {
+        const x = i * 58;
+        const y = 42 + Math.sin(i * 1.7) * 12;
+        g.beginPath();
+        g.arc(x, y, 15, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      g.fillStyle = "#9c2f74";
+      for (let i = -4; i <= 4; i++) {
+        g.beginPath();
+        g.arc(i * 50, -134 + Math.cos(i) * 7, 9, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      const candleXs = [-118, -58, 0, 58, 118];
+      for (const x of candleXs) {
+        roundedRect(g, x - 14, -390, 28, 120, 9, "#ffe5f3");
+        g.strokeStyle = "#cf347f";
+        g.lineWidth = 7;
+        g.beginPath();
+        g.moveTo(x - 9, -376);
+        g.lineTo(x + 10, -286);
+        g.stroke();
+        const flame = g.createRadialGradient(x, -420, 4, x, -420, 34);
+        flame.addColorStop(0, "#fff8b8");
+        flame.addColorStop(.55, "#ffb000");
+        flame.addColorStop(1, "rgba(255, 95, 80, 0)");
+        g.fillStyle = flame;
+        g.beginPath();
+        g.ellipse(x, -420, 20, 34, 0, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      g.globalAlpha = .82;
+      g.strokeStyle = "#7b2f91";
+      g.lineWidth = 7;
+      g.lineCap = "round";
+      for (let i = 0; i < 8; i++) {
+        const y = -218 + i * 48;
+        g.beginPath();
+        for (let x = -240; x <= 240; x += 12) {
+          const yy = y + Math.sin((x + i * 40) * .025) * 14;
+          if (x === -240) g.moveTo(x, yy);
+          else g.lineTo(x, yy);
+        }
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+      g.lineWidth = 5;
+      g.strokeStyle = "rgba(255, 255, 255, .72)";
+      g.beginPath();
+      g.ellipse(0, 245, 330, 70, 0, 0, Math.PI * 2);
+      g.stroke();
+      g.beginPath();
+      g.ellipse(0, 12, 315, 64, 0, 0, Math.PI * 2);
+      g.stroke();
+      g.beginPath();
+      g.ellipse(0, -130, 255, 54, 0, 0, Math.PI * 2);
+      g.stroke();
+      g.beginPath();
+      g.ellipse(0, -255, 190, 44, 0, 0, Math.PI * 2);
+      g.stroke();
+      g.restore();
+
+      drawSaturnRing(g, true);
+      return c;
+    }
+
+    function drawSaturnRing(g, front) {
+      g.save();
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      g.globalCompositeOperation = "source-over";
+      const start = front ? .04 * Math.PI : 1.04 * Math.PI;
+      const end = front ? .96 * Math.PI : 1.96 * Math.PI;
+      const alpha = front ? .92 : .44;
+      const rings = [
+        { rx: 428, ry: 116, width: 11, color: "rgba(125, 231, 255, .88)" },
+        { rx: 392, ry: 94, width: 5, color: "rgba(255, 140, 200, .82)" },
+        { rx: 462, ry: 135, width: 4, color: "rgba(255, 225, 113, .62)" }
+      ];
+
+      for (const ring of rings) {
+        g.globalAlpha = alpha;
+        g.strokeStyle = ring.color;
+        g.lineWidth = ring.width;
+        g.beginPath();
+        g.ellipse(500, 700, ring.rx, ring.ry, -0.12, start, end);
+        g.stroke();
+
+        g.globalAlpha = alpha * .42;
+        g.strokeStyle = "rgba(255, 255, 255, .9)";
+        g.lineWidth = Math.max(1.5, ring.width * .24);
+        g.beginPath();
+        g.ellipse(500, 700, ring.rx, ring.ry, -0.12, start, end);
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    function roundedRect(g, x, y, w, h, r, fill) {
+      g.fillStyle = fill;
+      g.beginPath();
+      g.moveTo(x + r, y);
+      g.lineTo(x + w - r, y);
+      g.quadraticCurveTo(x + w, y, x + w, y + r);
+      g.lineTo(x + w, y + h - r);
+      g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      g.lineTo(x + r, y + h);
+      g.quadraticCurveTo(x, y + h, x, y + h - r);
+      g.lineTo(x, y + r);
+      g.quadraticCurveTo(x, y, x + r, y);
+      g.fill();
+    }
+
+    function drawEllipse(g, x, y, rx, ry, top, edge) {
+      const grad = g.createLinearGradient(0, y - ry, 0, y + ry);
+      grad.addColorStop(0, top);
+      grad.addColorStop(1, edge);
+      g.fillStyle = grad;
+      g.beginPath();
+      g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    function rebuildParticles(burst = true) {
+      const sample = document.createElement("canvas");
+      const sampleW = 520;
+      const sampleH = 520;
+      sample.width = sampleW;
+      sample.height = sampleH;
+      const g = sample.getContext("2d", { willReadFrequently: true });
+      g.clearRect(0, 0, sampleW, sampleH);
+      g.drawImage(state.baseCanvas, 0, 0, sampleW, sampleH);
+      const image = g.getImageData(0, 0, sampleW, sampleH).data;
+      const alphaAt = (x, y) => {
+        if (x < 0 || y < 0 || x >= sampleW || y >= sampleH) return 0;
+        return image[(y * sampleW + x) * 4 + 3] / 255;
+      };
+      const targets = [];
+      const fit = Math.min(state.w * .58 / sampleW, state.h * .66 / sampleH);
+      const scale = Math.min(1.45, Math.max(.76, fit));
+      const centerX = state.w * .5;
+      const centerY = state.h * .54;
+      const stride = state.density > 18000 ? 2 : 3;
+
+      for (let y = 0; y < sampleH; y += stride) {
+        for (let x = 0; x < sampleW; x += stride) {
+          const i = (y * sampleW + x) * 4;
+          const a = image[i + 3] / 255;
+          if (a < .08) continue;
+          const r = image[i];
+          const gg = image[i + 1];
+          const b = image[i + 2];
+          const light = (r + gg + b) / 765;
+          const edge = Math.abs(a - alphaAt(x - stride, y)) +
+            Math.abs(a - alphaAt(x + stride, y)) +
+            Math.abs(a - alphaAt(x, y - stride)) +
+            Math.abs(a - alphaAt(x, y + stride));
+          const colorContrast = (Math.max(r, gg, b) - Math.min(r, gg, b)) / 255;
+          const nearWhite = r > 230 && gg > 230 && b > 230;
+          const textZone = y < 92;
+          const flameZone = y > 104 && y < 142 && r > 190 && gg > 88 && b < 110;
+          const ringZone = y > 270 && y < 450 && colorContrast > .38 && light > .42 && !textZone && !flameZone;
+          const keep = textZone
+            ? a * (.78 + edge * 1.65 + colorContrast * .42)
+            : flameZone
+              ? a * (.9 + edge * 1.7)
+              : ringZone
+                ? a * (.62 + edge * 1.45 + colorContrast * .36)
+                : a * (.2 + light * .42 + edge * 1.3 + colorContrast * .2) * (nearWhite ? .46 : 1);
+          if (Math.random() > keep) continue;
+          const bx = (x - sampleW / 2) * scale + rand(-.35, .35);
+          const by = (y - sampleH / 2) * scale + rand(-.35, .35);
+          targets.push({
+            bx,
+            by,
+            x: centerX + bx,
+            y: centerY + by,
+            r,
+            g: gg,
+            b,
+            a: textZone || flameZone ? clamp(a * (.84 + edge * .5), .56, 1) : clamp(a * (.5 + light * .42 + edge * .7), .22, .88),
+            edge: clamp(edge * (textZone || flameZone || ringZone ? 2.4 : 1.8), 0, 1),
+            text: textZone,
+            flame: flameZone,
+            ring: ringZone,
+            size: textZone ? .55 + light * .34 + edge * .36 + Math.random() * .12 : flameZone ? .62 + light * .34 + Math.random() * .18 : ringZone ? .46 + light * .32 + Math.random() * .14 : .36 + light * .34 + edge * .28 + Math.random() * .12
+          });
+        }
+      }
+
+      while (targets.length > state.density) {
+        const removable = targets.findIndex((target) => !target.text && !target.flame && !target.ring);
+        if (removable === -1) break;
+        let index = Math.floor(Math.random() * targets.length);
+        for (let tries = 0; tries < 12 && (targets[index].text || targets[index].flame || targets[index].ring); tries++) {
+          index = Math.floor(Math.random() * targets.length);
+        }
+        if (targets[index].text || targets[index].flame || targets[index].ring) index = removable;
+        targets.splice(index, 1);
+      }
+
+      state.targets = targets;
+      state.particles = targets.map((target, index) => {
+        const old = state.particles[index];
+        if (old && !burst) {
+          old.bx = target.bx;
+          old.by = target.by;
+          old.r = target.r;
+          old.g = target.g;
+          old.b = target.b;
+          old.a = target.a;
+          old.edge = target.edge;
+          old.text = target.text;
+          old.flame = target.flame;
+          old.ring = target.ring;
+          old.size = target.size;
+          return old;
+        }
+        return new Particle(target, burst);
+      });
+      updateParticleTargets(true);
+      countMetric.textContent = state.particles.length.toLocaleString("zh-CN");
+    }
+
+    function updateParticleTargets(force = false) {
+      const g = state.gesture;
+      const active = g.active;
+      const centerX = state.w * .5 + (active ? (g.centerX - .5) * state.w * .12 : 0);
+      const centerY = state.h * .54 + (active ? (g.centerY - .5) * state.h * .1 : 0);
+      const openness = active ? g.openness : 1;
+      const depthScale = active && (g.finger === "拉近拉远" || g.finger === "单指指向") ? g.z : 1;
+      const scale = active ? g.scale * depthScale : 1.12;
+      const spread = active ? g.spread : 1.5;
+      const angle = active ? g.angle : Math.sin(performance.now() * .00018) * .12;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+
+      for (const p of state.particles) {
+        const scatter = spread * (88 + Math.abs(p.bx) * .16 + Math.abs(p.by) * .12);
+        const sx = p.bx * scale + Math.cos(p.seed) * scatter;
+        const sy = p.by * scale + Math.sin(p.seed) * scatter;
+        p.tx = centerX + sx * cos - sy * sin;
+        p.ty = centerY + sx * sin + sy * cos - openness * 18;
+      }
+    }
+
+    async function initHandTracker() {
+      const cam = state.camera;
+      if (cam.handReady || cam.handLoading) return cam.handReady;
+      cam.handLoading = true;
+      cameraStatus.textContent = "正在加载手势识别";
+      try {
+        const visionModule = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+        const vision = await visionModule.FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+        );
+        cam.handLandmarker = await visionModule.HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+          },
+          runningMode: "VIDEO",
+          numHands: 1,
+          minHandDetectionConfidence: .35,
+          minHandPresenceConfidence: .35,
+          minTrackingConfidence: .35
+        });
+        cam.handReady = true;
+        cam.trackerMode = "landmarks";
+      } catch (error) {
+        cam.handReady = false;
+        cam.trackerMode = "pixel";
+        showToast("精确手势模型加载失败，已切换基础模式");
+      } finally {
+        cam.handLoading = false;
+      }
+      return cam.handReady;
+    }
+
+    function dist(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
+    }
+
+    function palmCenter(landmarks) {
+      const ids = [0, 5, 9, 13, 17];
+      let x = 0;
+      let y = 0;
+      let z = 0;
+      for (const id of ids) {
+        x += landmarks[id].x;
+        y += landmarks[id].y;
+        z += landmarks[id].z || 0;
+      }
+      return { x: x / ids.length, y: y / ids.length, z: z / ids.length };
+    }
+
+    function processHandLandmarks() {
+      const cam = state.camera;
+      if (!cam.handReady || !cam.handLandmarker || cameraVideo.readyState < 2) return false;
+      if (cameraVideo.currentTime === cam.lastVideoTime) return state.gesture.active;
+      cam.lastVideoTime = cameraVideo.currentTime;
+
+      const result = cam.handLandmarker.detectForVideo(cameraVideo, performance.now());
+      const landmarks = result.landmarks && result.landmarks[0];
+      if (!landmarks) {
+        state.gesture.confidence *= .82;
+        if (state.gesture.confidence < .15) state.gesture.active = false;
+        return false;
+      }
+
+      const palm = palmCenter(landmarks);
+      const tips = [4, 8, 12, 16, 20].map((id) => landmarks[id]);
+      const pips = [3, 6, 10, 14, 18].map((id) => landmarks[id]);
+      const palmSpan = Math.max(.001, dist(landmarks[5], landmarks[17]) + dist(landmarks[0], landmarks[9]) * .8);
+      let extended = 0;
+      let tipSpread = 0;
+      let maxTipDistance = 0;
+
+      for (let i = 0; i < tips.length; i++) {
+        const tipDistance = dist(tips[i], palm);
+        const pipDistance = dist(pips[i], palm);
+        tipSpread += tipDistance;
+        maxTipDistance = Math.max(maxTipDistance, tipDistance);
+        if (tipDistance > pipDistance * 1.08) extended++;
+      }
+
+      tipSpread /= tips.length;
+      const thumbIndexGap = dist(landmarks[4], landmarks[8]) / palmSpan;
+      const normalizedSpread = tipSpread / palmSpan;
+      const radialOpen = clamp((normalizedSpread - .46) / .42, 0, 1);
+      const fingerOpen = clamp((extended - 1) / 4, 0, 1);
+      const gapOpen = clamp((thumbIndexGap - .22) / .54, 0, 1);
+      const rawOpen = clamp(radialOpen * .46 + fingerOpen * .36 + gapOpen * .18, 0, 1);
+      const closingSpeed = cam.previousOpen === null ? 0 : Math.max(0, cam.previousOpen - rawOpen);
+      let open = clamp(rawOpen - closingSpeed * 1.2, 0, 1);
+      open = open < .62 ? open * .34 : clamp(.64 + (open - .62) * .94, 0, 1);
+      cam.previousOpen = rawOpen;
+
+      const indexDir = Math.atan2(landmarks[8].y - landmarks[5].y, landmarks[8].x - landmarks[5].x);
+      let angleDelta = 0;
+      if (cam.previousAngle !== null) {
+        angleDelta = indexDir - cam.previousAngle;
+        if (angleDelta > Math.PI) angleDelta -= Math.PI * 2;
+        if (angleDelta < -Math.PI) angleDelta += Math.PI * 2;
+      }
+      cam.previousAngle = indexDir;
+
+      if (!cam.baselineSize) cam.baselineSize = palmSpan;
+      cam.baselineSize = cam.baselineSize * .96 + palmSpan * .04;
+      const zRaw = clamp(cam.baselineSize / Math.max(.001, palmSpan), .68, 1.48);
+      const singleFinger = extended <= 2 && maxTipDistance / palmSpan > .64;
+      const finger = singleFinger
+        ? (Math.abs(angleDelta) > .035 ? "摇摆旋转" : (Math.abs(zRaw - 1) > .1 ? "拉近拉远" : "单指指向"))
+        : (open > .56 ? "手掌展开" : "手掌聚合");
+
+      const gesture = state.gesture;
+      gesture.active = true;
+      gesture.confidence = lerp(gesture.confidence, 1, .3);
+      gesture.centerX = lerp(gesture.centerX, 1 - palm.x, .36);
+      gesture.centerY = lerp(gesture.centerY, palm.y, .36);
+      gesture.openness = lerp(gesture.openness, open, .52);
+      gesture.scale = lerp(gesture.scale, lerp(.98, 1.24, open), .46);
+      gesture.spread = lerp(gesture.spread, (open ** 1.12) * 1.9, .62);
+      gesture.z = lerp(gesture.z, zRaw, .28);
+      gesture.rotateVelocity = lerp(gesture.rotateVelocity, singleFinger ? angleDelta * 22 : 0, .3);
+      gesture.angle += gesture.rotateVelocity * .018;
+      gesture.finger = finger;
+      return true;
+    }
+
+    function processCamera() {
+      const cam = state.camera;
+      if (!cam.enabled || cameraVideo.readyState < 2) {
+        state.gesture.active = false;
+        return;
+      }
+
+      if (processHandLandmarks()) return;
+
+      const g = cam.scanCanvas.getContext("2d", { willReadFrequently: true });
+      g.save();
+      g.scale(-1, 1);
+      g.drawImage(cameraVideo, -cam.width, 0, cam.width, cam.height);
+      g.restore();
+
+      const frame = g.getImageData(0, 0, cam.width, cam.height).data;
+      if (!cam.previous) cam.previous = new Uint8ClampedArray(cam.width * cam.height);
+
+      const points = [];
+      let area = 0;
+      let cx = 0;
+      let cy = 0;
+      let minX = cam.width;
+      let minY = cam.height;
+      let maxX = 0;
+      let maxY = 0;
+
+      for (let y = 0; y < cam.height; y++) {
+        for (let x = 0; x < cam.width; x++) {
+          const p = y * cam.width + x;
+          const i = p * 4;
+          const r = frame[i];
+          const green = frame[i + 1];
+          const b = frame[i + 2];
+          const lum = r * .299 + green * .587 + b * .114;
+          const diff = Math.abs(lum - cam.previous[p]);
+          cam.previous[p] = cam.previous[p] * .76 + lum * .24;
+          const max = Math.max(r, green, b);
+          const min = Math.min(r, green, b);
+          const skin = r > 55 && green > 32 && b > 20 && max - min > 12 && r > b * .9 && green > b * .72;
+          const moving = diff > 20 && lum > 38;
+          if (!skin && !moving) continue;
+          const weight = skin ? 1 : .46;
+          area += weight;
+          cx += x * weight;
+          cy += y * weight;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+          if ((x + y) % 2 === 0) points.push({ x, y, weight });
+        }
+      }
+
+      if (area < 75 || maxX <= minX || maxY <= minY) {
+        state.gesture.confidence *= .86;
+        if (state.gesture.confidence < .18) state.gesture.active = false;
+        return;
+      }
+
+      cx /= area;
+      cy /= area;
+      const w = maxX - minX + 1;
+      const h = maxY - minY + 1;
+      const boxDiag = Math.hypot(w, h);
+      if (!cam.baselineSize || boxDiag > cam.baselineSize * 1.9 || boxDiag < cam.baselineSize * .45) {
+        cam.baselineSize = boxDiag;
+      } else {
+        cam.baselineSize = cam.baselineSize * .97 + boxDiag * .03;
+      }
+
+      let radiusSum = 0;
+      let radiusMax = 0;
+      const bins = new Array(48).fill(0);
+      for (const point of points) {
+        const dx = point.x - cx;
+        const dy = point.y - cy;
+        const radius = Math.hypot(dx, dy);
+        radiusSum += radius * point.weight;
+        radiusMax = Math.max(radiusMax, radius);
+        const bin = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2)) * bins.length) % bins.length;
+        bins[bin] = Math.max(bins[bin], radius);
+      }
+
+      const avgRadius = radiusSum / Math.max(1, points.length);
+      let peaks = 0;
+      let peakIndex = 0;
+      let peakValue = 0;
+      for (let i = 0; i < bins.length; i++) {
+        const prev = bins[(i - 1 + bins.length) % bins.length];
+        const next = bins[(i + 1) % bins.length];
+        const value = bins[i];
+        if (value > avgRadius * 1.16 && value > prev * .9 && value > next * .9 && value > boxDiag * .1) peaks++;
+        if (value > peakValue) {
+          peakValue = value;
+          peakIndex = i;
+        }
+      }
+
+      const extent = area / (w * h);
+      const stretchRatio = radiusMax / Math.max(1, avgRadius);
+      const stretchOpen = clamp((stretchRatio - 1.12) / .66, 0, 1);
+      const fingerOpen = clamp(peaks / 5, 0, 1);
+      const extentOpen = 1 - clamp((extent - .22) / .4, 0, 1);
+      const sizeOpen = clamp((boxDiag / Math.max(1, cam.baselineSize) - .74) / .46, 0, 1);
+      const rawOpen = clamp(stretchOpen * .42 + fingerOpen * .34 + extentOpen * .14 + sizeOpen * .1, 0, 1);
+      const closingSpeed = cam.previousOpen === null ? 0 : Math.max(0, cam.previousOpen - rawOpen);
+      const shrinking = cam.previousBoxDiag === null ? 0 : clamp((cam.previousBoxDiag - boxDiag) / 9, 0, 1);
+      const compactClose = clamp((extent - .3) / .32, 0, 1);
+      const closePressure = compactClose * .38 + (1 - fingerOpen) * .24 + (1 - stretchOpen) * .24 + shrinking * .46;
+      let open = clamp(rawOpen - closePressure * .62 - closingSpeed * 1.55, 0, 1);
+      open = open < .56 ? open * .42 : clamp(.58 + (open - .56) * .96, 0, 1);
+      cam.previousOpen = rawOpen;
+      cam.previousBoxDiag = boxDiag;
+
+      const angle = ((peakIndex + .5) / bins.length) * Math.PI * 2 - Math.PI;
+      let angleDelta = 0;
+      if (cam.previousAngle !== null) {
+        angleDelta = angle - cam.previousAngle;
+        if (angleDelta > Math.PI) angleDelta -= Math.PI * 2;
+        if (angleDelta < -Math.PI) angleDelta += Math.PI * 2;
+      }
+      cam.previousAngle = angle;
+
+      const zRaw = clamp(boxDiag / Math.max(1, cam.baselineSize), .62, 1.55);
+      const singleFinger = peaks <= 2 && peakValue > avgRadius * 1.58;
+      const finger = singleFinger
+        ? (Math.abs(angleDelta) > .035 ? "摇摆旋转" : (Math.abs(zRaw - 1) > .12 ? "拉近拉远" : "单指指向"))
+        : (open > .58 ? "手掌展开" : "手掌聚合");
+
+      const gesture = state.gesture;
+      gesture.active = true;
+      gesture.confidence = lerp(gesture.confidence, clamp(area / 850, 0, 1), .18);
+      gesture.centerX = lerp(gesture.centerX, cx / cam.width, .22);
+      gesture.centerY = lerp(gesture.centerY, cy / cam.height, .22);
+      gesture.openness = lerp(gesture.openness, open, .38);
+      gesture.scale = lerp(gesture.scale, lerp(.98, 1.22, open), .36);
+      gesture.spread = lerp(gesture.spread, (open ** 1.2) * 1.82, .46);
+      gesture.z = lerp(gesture.z, zRaw, .18);
+      gesture.rotateVelocity = lerp(gesture.rotateVelocity, singleFinger ? angleDelta * 18 : 0, .22);
+      gesture.angle += gesture.rotateVelocity * .018;
+      gesture.finger = finger;
+    }
+
+    function drawBackground(time) {
+      ctx.globalCompositeOperation = "source-over";
+      const grad = ctx.createLinearGradient(0, 0, state.w, state.h);
+      grad.addColorStop(0, "#05060a");
+      grad.addColorStop(.56, "#0b0f17");
+      grad.addColorStop(1, "#070711");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, state.w, state.h);
+
+      ctx.save();
+      ctx.globalAlpha = .52;
+      const glow = ctx.createRadialGradient(state.w * .5, state.h * .52, 0, state.w * .5, state.h * .52, Math.min(state.w, state.h) * .52);
+      glow.addColorStop(0, `rgba(${state.hue.r}, ${state.hue.g}, ${state.hue.b}, .14)`);
+      glow.addColorStop(.62, "rgba(125, 231, 255, .05)");
+      glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, state.w, state.h);
+
+      drawStarField(time);
+      drawAurora(time);
+
+      if (state.gesture.active) {
+        const x = state.gesture.centerX * state.w;
+        const y = state.gesture.centerY * state.h;
+        const r = 80 + state.gesture.openness * 170;
+        const handGlow = ctx.createRadialGradient(x, y, 0, x, y, r);
+        handGlow.addColorStop(0, "rgba(104, 240, 179, .18)");
+        handGlow.addColorStop(1, "rgba(104, 240, 179, 0)");
+        ctx.fillStyle = handGlow;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawStarField(time) {
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      const count = Math.min(120, Math.max(48, Math.floor(state.w * state.h / 18000)));
+      for (let i = 0; i < count; i++) {
+        const x = ((Math.sin(i * 127.1) * 43758.5453) % 1 + 1) % 1 * state.w;
+        const y = ((Math.sin(i * 311.7) * 24634.6345) % 1 + 1) % 1 * state.h * .82;
+        const centerFalloff = Math.hypot((x / state.w) - .5, (y / state.h) - .54);
+        if (centerFalloff < .2 && i % 3 !== 0) continue;
+        const twinkle = .42 + Math.sin(time * .001 + i * 2.17) * .18;
+        const size = .45 + (((Math.sin(i * 19.9) * 999) % 1 + 1) % 1) * 1.05;
+        ctx.globalAlpha = twinkle * .46;
+        ctx.fillStyle = "rgba(230, 246, 255, .86)";
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    function drawAurora(time) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const t = time * .00012;
+      const diagonal = [
+        { x: .56, y: -.08, width: .12, length: 1.28, color: [124, 238, 219], alpha: .105, phase: 0 },
+        { x: .69, y: -.02, width: .16, length: 1.24, color: [163, 168, 255], alpha: .11, phase: 1.7 },
+        { x: .82, y: -.08, width: .2, length: 1.34, color: [88, 215, 238], alpha: .12, phase: 3.1 },
+        { x: .49, y: .16, width: .07, length: .95, color: [198, 106, 210], alpha: .055, phase: 4.6 }
+      ];
+
+      ctx.filter = "blur(24px)";
+      for (const band of diagonal) {
+        const drift = Math.sin(t * 1.8 + band.phase) * state.w * .018;
+        const x = state.w * band.x + drift;
+        const y = state.h * band.y;
+        const width = state.w * band.width * (1 + Math.sin(t * 2.4 + band.phase) * .08);
+        const length = state.h * band.length;
+        const lean = state.w * .36;
+        const alpha = band.alpha * (1 + Math.sin(t * 2.1 + band.phase) * .16);
+        const grad = ctx.createLinearGradient(x - width, y, x + lean + width, y + length);
+        grad.addColorStop(0, `rgba(${band.color[0]}, ${band.color[1]}, ${band.color[2]}, 0)`);
+        grad.addColorStop(.28, `rgba(${band.color[0]}, ${band.color[1]}, ${band.color[2]}, ${alpha})`);
+        grad.addColorStop(.58, `rgba(${band.color[0]}, ${band.color[1]}, ${band.color[2]}, ${alpha * .68})`);
+        grad.addColorStop(1, `rgba(${band.color[0]}, ${band.color[1]}, ${band.color[2]}, 0)`);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(x - width, y);
+        ctx.bezierCurveTo(x + lean * .12, y + length * .28, x + lean * .05, y + length * .58, x + lean - width * .18, y + length);
+        ctx.lineTo(x + lean + width * .42, y + length);
+        ctx.bezierCurveTo(x + lean * .72, y + length * .58, x + lean * .94, y + length * .25, x + width, y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.filter = "blur(10px)";
+      const faintCount = 15;
+      for (let i = 0; i < faintCount; i++) {
+        const u = i / (faintCount - 1);
+        const x = state.w * (.32 + u * .68) + Math.sin(t * 2 + u * 8) * state.w * .015;
+        const y = state.h * (-.05 + Math.sin(u * 4.7 + t) * .04);
+        const width = state.w * (.018 + .028 * (Math.sin(u * 9.5 - t) * .5 + .5));
+        const length = state.h * (.72 + .26 * (Math.sin(u * 5.2 + t * 1.5) * .5 + .5));
+        const grad = ctx.createLinearGradient(x, y, x + state.w * .28, y + length);
+        grad.addColorStop(0, "rgba(144, 255, 224, 0)");
+        grad.addColorStop(.32, "rgba(144, 255, 224, .035)");
+        grad.addColorStop(.62, "rgba(166, 158, 255, .026)");
+        grad.addColorStop(1, "rgba(69, 211, 240, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(x - width, y);
+        ctx.bezierCurveTo(x + state.w * .08, y + length * .3, x + state.w * .11, y + length * .62, x + state.w * .26 - width, y + length);
+        ctx.lineTo(x + state.w * .26 + width, y + length);
+        ctx.bezierCurveTo(x + state.w * .16, y + length * .62, x + state.w * .16, y + length * .3, x + width, y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.filter = "none";
+      const vignette = ctx.createRadialGradient(state.w * .5, state.h * .55, 0, state.w * .5, state.h * .55, Math.min(state.w, state.h) * .44);
+      vignette.addColorStop(0, "rgba(0, 0, 0, .34)");
+      vignette.addColorStop(.55, "rgba(0, 0, 0, .16)");
+      vignette.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, state.w, state.h);
+
+      ctx.restore();
+    }
+
+    function drawParticles(time) {
+      ctx.globalCompositeOperation = "source-over";
+      for (const p of state.particles) {
+        const formedFlame = p.flame && state.gesture.openness < .38;
+        const ringGlow = p.ring && state.gesture.openness < .75;
+        const tintAmount = p.text || p.flame || p.ring ? .02 : (p.edge > .35 ? .1 : .22);
+        const tint = formedFlame
+          ? { r: 255, g: Math.round(156 + Math.sin(time * .021 + p.seed) * 48), b: 42 }
+          : tintColor(p.r, p.g, p.b, tintAmount);
+        const pulse = formedFlame ? 1 + Math.sin(time * .026 + p.seed * 5) * .34 : ringGlow ? 1 + Math.sin(time * .005 + p.seed) * .16 : .9 + Math.sin(time * .0032 + p.seed) * .1;
+        const size = p.size * pulse * (p.text ? 1.02 : p.ring ? .8 : (p.edge > .35 ? .92 : .78));
+
+        ctx.globalAlpha = p.a * (formedFlame ? .34 : ringGlow ? .22 : p.text ? .24 : (.12 + p.edge * .08));
+        ctx.fillStyle = "rgba(0, 0, 0, .72)";
+        ctx.beginPath();
+        ctx.arc(p.x + .55, p.y + .55, size * 1.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = formedFlame ? p.a * .5 : ringGlow ? p.a * .42 : p.a * (.08 + p.edge * .1);
+        ctx.fillStyle = `rgb(${tint.r}, ${tint.g}, ${tint.b})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size * (formedFlame ? 4.4 : ringGlow ? 6.4 : 2.15), 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = "source-over";
+        ctx.globalAlpha = p.text || p.flame || p.ring ? p.a : p.a * (.66 + p.edge * .28);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+    }
+
+    function updateMetrics() {
+      if (!state.gesture.active) {
+        openMetric.textContent = state.camera.enabled ? "寻找手掌" : "待机";
+        scaleMetric.textContent = "100%";
+        fingerMetric.textContent = state.camera.enabled ? "等待手势" : "待机";
+        cameraStatus.className = "camera-status" + (state.camera.enabled ? "" : "");
+        if (state.camera.enabled) cameraStatus.textContent = "把单手放入画面";
+        return;
+      }
+
+      const open = Math.round(state.gesture.openness * 100);
+      const scale = Math.round(state.gesture.scale * state.gesture.z * 100);
+      openMetric.textContent = open + "%";
+      scaleMetric.textContent = scale + "%";
+      fingerMetric.textContent = state.gesture.finger;
+      cameraStatus.className = "camera-status tracking";
+      cameraStatus.textContent = state.gesture.finger;
+      statusText.textContent = open > 58 ? "张开手掌，粒子散开" : "合拢手掌，蛋糕聚成型";
+    }
+
+    function animate(time) {
+      const dt = clamp((time - state.lastTime) / 16.67, .42, 1.8);
+      state.lastTime = time;
+      processCamera();
+      updateParticleTargets();
+      for (const p of state.particles) p.step(dt, time);
+      drawBackground(time);
+      drawParticles(time);
+      updateMetrics();
+      requestAnimationFrame(animate);
+    }
+
+    async function toggleCamera() {
+      if (state.camera.enabled) {
+        stopCamera();
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: "user" },
+          audio: false
+        });
+        state.camera.stream = stream;
+        cameraVideo.srcObject = stream;
+        state.camera.enabled = true;
+        state.camera.previous = null;
+        state.camera.baselineSize = 0;
+        state.camera.previousOpen = null;
+        state.camera.previousBoxDiag = null;
+        state.camera.previousAngle = null;
+        cameraBtn.classList.add("active");
+        cameraBtn.setAttribute("aria-pressed", "true");
+        cameraCard.classList.add("live");
+        cameraStatus.className = "camera-status";
+        cameraStatus.textContent = "把单手放入画面";
+        statusText.textContent = "张开为散开，合拢聚成生日蛋糕";
+        initHandTracker().then((ready) => {
+          if (!state.camera.enabled) return;
+          cameraStatus.className = "camera-status" + (ready ? " tracking" : "");
+          cameraStatus.textContent = ready ? "精确手势模式" : "基础手势模式";
+        });
+      } catch (error) {
+        cameraStatus.className = "camera-status error";
+        cameraStatus.textContent = "摄像头不可用";
+        showToast("浏览器没有拿到摄像头权限");
+      }
+    }
+
+    function stopCamera() {
+      if (state.camera.stream) {
+        for (const track of state.camera.stream.getTracks()) track.stop();
+      }
+      state.camera.enabled = false;
+      state.camera.stream = null;
+      state.camera.previous = null;
+      state.camera.baselineSize = 0;
+      state.camera.previousOpen = null;
+      state.camera.previousBoxDiag = null;
+      state.camera.previousAngle = null;
+      state.gesture.active = false;
+      cameraVideo.srcObject = null;
+      cameraBtn.classList.remove("active");
+      cameraBtn.setAttribute("aria-pressed", "false");
+      cameraCard.classList.remove("live");
+      cameraStatus.className = "camera-status";
+      cameraStatus.textContent = "摄像头待机";
+      statusText.textContent = "粒子已散开，合拢手掌聚成蛋糕";
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2400);
+    }
+
+    function deactivateAudioButton(button) {
+      button.classList.remove("active");
+      button.setAttribute("aria-pressed", "false");
+    }
+
+    async function toggleAudio(audio, button, otherAudio, otherButton, label) {
+      if (!audio.paused) {
+        audio.pause();
+        deactivateAudioButton(button);
+        return;
+      }
+
+      otherAudio.pause();
+      otherAudio.currentTime = 0;
+      deactivateAudioButton(otherButton);
+      audio.volume = .64;
+      try {
+        await audio.play();
+        button.classList.add("active");
+        button.setAttribute("aria-pressed", "true");
+        showToast(label + "已播放");
+      } catch (error) {
+        deactivateAudioButton(button);
+        showToast("浏览器暂时无法播放该音频");
+      }
+    }
+
+    cameraBtn.addEventListener("click", toggleCamera);
+    musicBtn.addEventListener("click", () => toggleAudio(birthdayAudio, musicBtn, blessingAudio, blessingBtn, "许愿歌"));
+    blessingBtn.addEventListener("click", () => toggleAudio(blessingAudio, blessingBtn, birthdayAudio, musicBtn, "峰哥祝福"));
+    birthdayAudio.addEventListener("ended", () => {
+      deactivateAudioButton(musicBtn);
+    });
+    birthdayAudio.addEventListener("error", () => {
+      deactivateAudioButton(musicBtn);
+      showToast("许愿歌加载失败");
+    });
+    blessingAudio.addEventListener("ended", () => {
+      deactivateAudioButton(blessingBtn);
+    });
+    blessingAudio.addEventListener("error", () => {
+      deactivateAudioButton(blessingBtn);
+      showToast("音频加载失败");
+    });
+
+    resetBtn.addEventListener("click", () => {
+      state.gesture.angle = 0;
+      state.gesture.rotateVelocity = 0;
+      state.gesture.scale = 1;
+      state.gesture.spread = 1.35;
+      state.gesture.z = 1;
+      state.gesture.active = false;
+      rebuildParticles(true);
+      showToast("粒子已重新散开");
+    });
+
+    fullscreenBtn.addEventListener("click", async () => {
+      try {
+        if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+        else await document.exitFullscreen();
+      } catch (error) {
+        showToast("当前浏览器不允许全屏");
+      }
+    });
+
+    colorInput.addEventListener("input", () => {
+      state.hue = hexToRgb(colorInput.value);
+      document.documentElement.style.setProperty("--accent", colorInput.value);
+    });
+
+    densityRange.addEventListener("change", () => {
+      state.density = Number(densityRange.value);
+      rebuildParticles(true);
+    });
+
+    window.addEventListener("pointermove", (event) => {
+      state.pointer.x = event.clientX;
+      state.pointer.y = event.clientY;
+      state.pointer.active = true;
+    });
+
+    window.addEventListener("pointerdown", (event) => {
+      state.pointer.x = event.clientX;
+      state.pointer.y = event.clientY;
+      state.pointer.active = true;
+      state.pointer.down = true;
+    });
+
+    window.addEventListener("pointerup", () => state.pointer.down = false);
+    window.addEventListener("pointerleave", () => {
+      state.pointer.active = false;
+      state.pointer.down = false;
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
