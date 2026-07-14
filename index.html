@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>生日蛋糕粒子手势</title>
   <style>
     :root {
@@ -25,6 +25,7 @@
     body {
       width: 100%;
       height: 100%;
+      min-height: 100%;
       margin: 0;
       overflow: hidden;
       background: var(--bg);
@@ -39,6 +40,8 @@
       inset: 0;
       width: 100vw;
       height: 100vh;
+      width: 100dvw;
+      height: 100dvh;
       display: block;
       background:
         radial-gradient(circle at 48% 36%, rgba(255, 140, 200, .13), transparent 32%),
@@ -49,9 +52,9 @@
 
     .topbar {
       position: fixed;
-      top: clamp(12px, 2vw, 22px);
-      left: clamp(12px, 2vw, 22px);
-      right: clamp(12px, 2vw, 22px);
+      top: calc(env(safe-area-inset-top, 0px) + clamp(12px, 2vw, 22px));
+      left: calc(env(safe-area-inset-left, 0px) + clamp(12px, 2vw, 22px));
+      right: calc(env(safe-area-inset-right, 0px) + clamp(12px, 2vw, 22px));
       z-index: 3;
       display: flex;
       align-items: flex-start;
@@ -129,6 +132,7 @@
       gap: 7px;
       cursor: pointer;
       white-space: nowrap;
+      touch-action: manipulation;
     }
 
     button:hover {
@@ -170,6 +174,7 @@
       border-radius: 50%;
       background: transparent;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     .range-wrap {
@@ -184,12 +189,13 @@
     input[type="range"] {
       width: 100%;
       accent-color: var(--accent-2);
+      touch-action: pan-x;
     }
 
     .telemetry {
       position: fixed;
-      left: clamp(12px, 2vw, 22px);
-      bottom: clamp(12px, 2vw, 22px);
+      left: calc(env(safe-area-inset-left, 0px) + clamp(12px, 2vw, 22px));
+      bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(12px, 2vw, 22px));
       z-index: 3;
       display: grid;
       grid-template-columns: repeat(4, minmax(86px, 1fr));
@@ -231,8 +237,8 @@
 
     .camera-card {
       position: fixed;
-      right: clamp(12px, 2vw, 22px);
-      bottom: clamp(12px, 2vw, 22px);
+      right: calc(env(safe-area-inset-right, 0px) + clamp(12px, 2vw, 22px));
+      bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(12px, 2vw, 22px));
       z-index: 3;
       width: min(210px, 36vw);
       overflow: hidden;
@@ -316,44 +322,160 @@
       .topbar {
         display: grid;
         grid-template-columns: 1fr;
+        top: calc(env(safe-area-inset-top, 0px) + 10px);
+        left: calc(env(safe-area-inset-left, 0px) + 10px);
+        right: calc(env(safe-area-inset-right, 0px) + 10px);
+        gap: 8px;
       }
 
       .brand {
         width: 100%;
+        padding: 10px 11px;
+      }
+
+      h1 {
+        font-size: clamp(18px, 5vw, 26px);
+        line-height: 1.08;
+      }
+
+      .status {
+        margin-top: 7px;
+        font-size: 11px;
       }
 
       .controls {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         width: 100%;
-      }
-
-      .range-wrap {
-        min-width: 0;
-      }
-
-      .telemetry {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        bottom: calc(clamp(12px, 2vw, 22px) + 86px);
-      }
-
-      .camera-card {
-        width: min(150px, 38vw);
-      }
-    }
-
-    @media (max-width: 520px) {
-      .controls {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        padding: 6px;
       }
 
       button,
       .color-wrap {
         height: 36px;
         font-size: 12px;
+        padding-left: 7px;
+        padding-right: 7px;
+      }
+
+      .color-wrap {
+        grid-column: span 3;
+      }
+
+      .range-wrap {
+        grid-column: 1 / -1;
+      }
+
+      .range-wrap {
+        min-width: 0;
+        font-size: 10px;
+      }
+
+      .telemetry {
+        left: calc(env(safe-area-inset-left, 0px) + 10px);
+        right: calc(env(safe-area-inset-right, 0px) + 10px);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+        width: auto;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .metric {
+        min-height: 38px;
+        padding: 6px 7px;
+      }
+
+      .metric span {
+        font-size: 9px;
+      }
+
+      .metric strong {
+        margin-top: 4px;
+        font-size: 12px;
+      }
+
+      .camera-card {
+        width: min(132px, 34vw);
+        right: calc(env(safe-area-inset-right, 0px) + 10px);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 62px);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .controls {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      button,
+      .color-wrap {
+        height: 34px;
+        font-size: 11px;
       }
 
       .icon-btn {
         width: auto;
+      }
+
+      .brand,
+      .controls,
+      .camera-card,
+      .metric {
+        backdrop-filter: blur(12px);
+      }
+    }
+
+    @media (max-width: 420px) {
+      .topbar {
+        top: calc(env(safe-area-inset-top, 0px) + 8px);
+        left: calc(env(safe-area-inset-left, 0px) + 8px);
+        right: calc(env(safe-area-inset-right, 0px) + 8px);
+      }
+
+      .brand {
+        padding: 8px 9px;
+      }
+
+      h1 {
+        font-size: clamp(17px, 5.4vw, 22px);
+      }
+
+      .status {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      button,
+      .color-wrap {
+        min-width: 0;
+        padding-left: 5px;
+        padding-right: 5px;
+      }
+
+      .telemetry {
+        left: calc(env(safe-area-inset-left, 0px) + 8px);
+        right: calc(env(safe-area-inset-right, 0px) + 8px);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+        gap: 5px;
+      }
+
+      .metric {
+        min-height: 34px;
+        padding: 5px 6px;
+      }
+
+      .metric span {
+        display: none;
+      }
+
+      .metric strong {
+        margin-top: 0;
+        font-size: 11px;
+      }
+
+      .camera-card {
+        width: 112px;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 52px);
       }
     }
   </style>
@@ -565,8 +687,9 @@
 
     function resize() {
       state.dpr = Math.min(window.devicePixelRatio || 1, 2);
-      state.w = window.innerWidth;
-      state.h = window.innerHeight;
+      const viewport = window.visualViewport;
+      state.w = Math.round(viewport ? viewport.width : window.innerWidth);
+      state.h = Math.round(viewport ? viewport.height : window.innerHeight);
       canvas.width = Math.floor(state.w * state.dpr);
       canvas.height = Math.floor(state.h * state.dpr);
       canvas.style.width = state.w + "px";
@@ -574,6 +697,25 @@
       ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
       if (!state.baseCanvas) state.baseCanvas = makeCakeCanvas();
       rebuildParticles(false);
+    }
+
+    function layoutProfile() {
+      const portrait = state.w <= 720 || state.h > state.w * 1.12;
+      const tiny = state.w <= 420;
+      return {
+        portrait,
+        fitWidth: state.w * (portrait ? (tiny ? .9 : .88) : .58),
+        fitHeight: state.h * (portrait ? .52 : .66),
+        minScale: portrait ? (tiny ? .48 : .52) : .76,
+        maxScale: portrait ? .88 : 1.45,
+        centerX: state.w * .5,
+        centerY: state.h * (portrait ? .55 : .54),
+        centerOffsetX: portrait ? .08 : .12,
+        centerOffsetY: portrait ? .07 : .1,
+        defaultScale: portrait ? .98 : 1.12,
+        defaultSpread: portrait ? 1.28 : 1.5,
+        scatterBase: portrait ? 68 : 88
+      };
     }
 
     function makeCakeCanvas() {
@@ -775,10 +917,11 @@
         return image[(y * sampleW + x) * 4 + 3] / 255;
       };
       const targets = [];
-      const fit = Math.min(state.w * .58 / sampleW, state.h * .66 / sampleH);
-      const scale = Math.min(1.45, Math.max(.76, fit));
-      const centerX = state.w * .5;
-      const centerY = state.h * .54;
+      const layout = layoutProfile();
+      const fit = Math.min(layout.fitWidth / sampleW, layout.fitHeight / sampleH);
+      const scale = Math.min(layout.maxScale, Math.max(layout.minScale, fit));
+      const centerX = layout.centerX;
+      const centerY = layout.centerY;
       const stride = state.density > 18000 ? 2 : 3;
 
       for (let y = 0; y < sampleH; y += stride) {
@@ -863,19 +1006,20 @@
 
     function updateParticleTargets(force = false) {
       const g = state.gesture;
+      const layout = layoutProfile();
       const active = g.active;
-      const centerX = state.w * .5 + (active ? (g.centerX - .5) * state.w * .12 : 0);
-      const centerY = state.h * .54 + (active ? (g.centerY - .5) * state.h * .1 : 0);
+      const centerX = layout.centerX + (active ? (g.centerX - .5) * state.w * layout.centerOffsetX : 0);
+      const centerY = layout.centerY + (active ? (g.centerY - .5) * state.h * layout.centerOffsetY : 0);
       const openness = active ? g.openness : 1;
       const depthScale = active && (g.finger === "拉近拉远" || g.finger === "单指指向") ? g.z : 1;
-      const scale = active ? g.scale * depthScale : 1.12;
-      const spread = active ? g.spread : 1.5;
+      const scale = active ? g.scale * depthScale : layout.defaultScale;
+      const spread = active ? g.spread : layout.defaultSpread;
       const angle = active ? g.angle : Math.sin(performance.now() * .00018) * .12;
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
 
       for (const p of state.particles) {
-        const scatter = spread * (88 + Math.abs(p.bx) * .16 + Math.abs(p.by) * .12);
+        const scatter = spread * (layout.scatterBase + Math.abs(p.bx) * .16 + Math.abs(p.by) * .12);
         const sx = p.bx * scale + Math.cos(p.seed) * scatter;
         const sy = p.by * scale + Math.sin(p.seed) * scatter;
         p.tx = centerX + sx * cos - sy * sin;
@@ -1504,6 +1648,10 @@
     });
 
     window.addEventListener("resize", resize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", resize);
+      window.visualViewport.addEventListener("scroll", resize);
+    }
     resize();
     requestAnimationFrame(animate);
   </script>
